@@ -1,54 +1,51 @@
-# Moneybagg Yo
+# MoneyBaggYooo
 
-A simple budgeting application that helps users keep track of their finances.
-
-## Table of Contents
-
--   # Features
--   # Requirements
--   # Installation
--   # Usage
--   # Contributing
--   # License
+MoneyBaggYooo is a simple GUI application that helps users track their finances and product inventory. The application is written in Python using the tkinter library and allows users to credit or repay clients, manage cash on hand, and track product inventory.
 
 ## Features
 
--   Track expenses and income
--   Create a budget
--   Set financial goals
--   View reports and graphs of financial data
--   Customize categories for income and expenses
+MoneyBaggYooo has three main frames: Client Info, Finances, and Product Info.
 
-## Requirements
+### Client Info Frame
 
--   Python 3.6 or higher
--   Tkinter
--   Pillow
+The Client Info frame allows users to select a client from a dropdown list and credit or repay the client's account with a specific amount. Users can also add a new client and credit their account with a specific amount.
+
+### Finances Frame
+
+The Finances frame displays the total cash on hand and allows users to increase or decrease this value. The Zero Cash button will zero out the label and the 'cash' file.
+
+### Product Info Frame
+
+The Product Info frame allows users to select a product from a dropdown list and increase or decrease the number of units in stock.
 
 ## Installation
 
-1.  Clone this repository to your local machine
-2.  Install the required packages by running `pip install -r requirements.txt`
-3.  Run the application by running `python main.py`
+To use MoneyBaggYooo, you'll need to have Python 3 installed on your computer. You can download the latest version of Python from the official website: [https://www.python.org/downloads/](https://www.python.org/downloads/)
+
+You'll also need to install the following Python packages:
+
+-   `customtkinter`: This package can be installed using pip
+
+pythonCopy code
+
+`pip install customtkinter`
 
 ## Usage
 
-1.  Launch the application
-2.  Add transactions by clicking on the "Add Transaction" button
-3.  Set a budget by clicking on the "Set Budget" button
-4.  View financial reports by clicking on the "View Reports" button
-5.  Customize categories by clicking on the "Manage Categories" button
+To run MoneyBaggYooo, navigate to the directory containing the `moneyBaggYooo.py` file and run the following command:
+
+pythonCopy code
+
+`python moneyBaggYooo.py`
 
 ## Contributing
 
-Contributions are welcome! To contribute, please follow these steps:
+If you'd like to contribute to MoneyBaggYooo, please fork the repository and create a pull request. We welcome contributions of all kinds, including bug fixes, new features, and documentation improvements.
 
-1.  Fork this repository
-2.  Create a new branch (`git checkout -b new-feature`)
-3.  Make your changes and commit them (`git commit -am 'Add new feature'`)
-4.  Push to the branch (`git push origin new-feature`)
-5.  Create a new Pull Request
+## Acknowledgements
+
+MoneyBaggYooo was developed by [author/team name] and uses the [external library] library.
 
 ## License
 
-This project is licensed under the MIT License
+MoneyBaggYooo is released under the MIT License. See the LICENSE file for details.
