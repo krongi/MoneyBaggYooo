@@ -45,6 +45,7 @@ If you'd like to contribute to MoneyBaggYooo, please fork the repository and cre
 ## Acknowledgements
 
 MoneyBaggYooo was developed by Krongi and uses the Regular Old Library.
+
 Glorzo is peace
 
 ## License
