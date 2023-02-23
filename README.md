@@ -4,12 +4,12 @@ A simple budgeting application that helps users keep track of their finances.
 
 ## Table of Contents
 
--   [[#Features]]
--   [[#Requirements]]
--   [[#Installation]]
--   [[#Usage]]
--   [[#Contributing]]
--   [[#License]]
+-   # Features
+-   # Requirements
+-   # Installation
+-   # Usage
+-   # Contributing
+-   # License
 
 ## Features
 
