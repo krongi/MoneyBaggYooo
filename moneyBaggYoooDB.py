@@ -44,12 +44,12 @@ clientTable = scratch.TableSetup(cursor, clientTable, clientColumnNames[0], clie
 productTable = scratch.TableSetup(cursor, productTable, productColumnNames[0], productColumnNames, productColumnTypes)
 
 
-for i in queries:
-    result = None
+# for i in tables:
+    # result = None
     # johnnyDropTables(i, cursor)
-    # johnnyDropTables
-    cursor.execute(i)
-    print(i)
-    print(cursor)
-    result = cursor.fetchall()
-# cursor.close()
+
+    # # cursor.execute(i)
+    # print(i)
+    # print(cursor)
+    # result = cursor.fetchall()
+cursor.close()
