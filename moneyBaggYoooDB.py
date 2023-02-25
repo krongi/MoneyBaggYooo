@@ -28,6 +28,9 @@ productColumnTypes = ['int', 'varchar(255)', 'float', 'float']
 clientColumnNames = ['ClientID', 'ClientFirst', 'ClientBalace']
 clientColumnTypes = ['int', 'varchar(255)', 'float']
 
+trialDict = {}
+
+
 
 productTableColumnsCreate = 'ProductID int NOT NULL UNIQUE AUTO_INCREMENT, ProductName varchar(255), ProductPPU float, ProductSellPrice float'
 clientTableColumnsCreate = 'ClientID int NOT NULL UNIQUE AUTO_INCREMENT, ClientFirst varchar(255), ClientBalance float'
@@ -40,8 +43,11 @@ setupQuery = f'CREATE DATABASE `{dbName}`;'
 tables = [clientTable, productTable]
 queries = [clientTableCreate, productTableCreate]
 
-clientTable = scratch.TableSetup(cursor, clientTable, clientColumnNames[0], clientColumnNames, clientColumnTypes)
-productTable = scratch.TableSetup(cursor, productTable, productColumnNames[0], productColumnNames, productColumnTypes)
+clientTable = scratch.TableSetup(connection, cursor, clientTable, clientColumnNames[0], clientColumnNames, clientColumnTypes)
+productTable = scratch.TableSetup(connection, cursor, productTable, productColumnNames[0], productColumnNames, productColumnTypes)
+
+productColumnDict = productTable.createColumnDict(productColumnNames, productColumnTypes)
+clientColumnDict = clientTable.createColumnDict(clientColumnNames, clientColumnTypes)
 
 
 # for i in tables:
