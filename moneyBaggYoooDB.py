@@ -49,13 +49,4 @@ productTable = scratch.TableSetup(connection, cursor, productTable, productColum
 productColumnDict = productTable.createColumnDict(productColumnNames, productColumnTypes)
 clientColumnDict = clientTable.createColumnDict(clientColumnNames, clientColumnTypes)
 
-
-# for i in tables:
-    # result = None
-    # johnnyDropTables(i, cursor)
-
-    # # cursor.execute(i)
-    # print(i)
-    # print(cursor)
-    # result = cursor.fetchall()
 cursor.close()
