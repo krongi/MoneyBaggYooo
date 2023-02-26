@@ -8,30 +8,38 @@ class TableSetup():
         self.connection = connectionCursor
         self.msqlConnection = connection
 
-        self.columnDict = {} 
-        self.counter = 0
+        # self.columnDict = {} 
+        # self.counter = 0
 
         # for i in self.columnNameList:
         #     self.columnDict.update({str(self.columnNameList[counter]): str(columnTypeList[counter])})
             # self.counter += 1
+        columnDict = self.createColumnDict(self.columnNameList, self.columnType)
+        firstString = f'{primaryColumn} {columnDict.get(primaryColumn)} NOT NULL UNIQUE AUTO_INCREMENT, '
+        primaryString = self.columnNameTypeString(columnDict)
+        primaryString = primaryString.split(', ')
+        primaryString.pop(0)
+        lastString = f'PRIMARY KEY ({primaryColumn});'
+        for i in primaryString: 
+            finalString += i
+            return 
         
-        self.counter = 0
-        
-        self.columnNameTypeString = ''
-
-        for i in self.columnDict:
-            if counter+1 < len(self.columnDict):
+    def columnNameTypeString(self, columnDict:dict):   
+        columnNameTypeString = ''
+        counter = 0
+        for i in columnDict:
+            if counter + 1 < len(columnDict):
                 name = i
-                value = self.columnDict.get(i)
-                self.columnNameTypeString += name + " " + value + ", "
+                value = columnDict.get(i)
+                columnNameTypeString += name + " " + value + ", "
                 counter += 1
             else:
                 name = i
-                value = self.columnDict.get(i)
-                self.columnNameTypeString += name + " " + value
-                counter = 0
-        
-        print(self.columnNameTypeString)
+                value = columnDict.get(i)
+                columnNameTypeString += name + " " + value
+        counter = 0
+        print(columnNameTypeString)
+        return columnNameTypeString
 
     def createColumnDict(self, columnNameList:list, columnTypeList:list):
         columnDict = {}
@@ -39,18 +47,18 @@ class TableSetup():
             columnDict.update({columnNameList[len(columnDict)]: columnTypeList[len(columnDict)]})
         return columnDict
     
-    def createDBTable(self, connection:object, cursor:object, tableName:str, ColumnName:str): 
-        command = f'CREATE TABLE {self.tableName} ({self.columnNameTypeString});'
+    def createDBTable(self, connection:object, cursor:object, tableName:str, columnNameTypeString:str): 
+        command = f'CREATE TABLE {tableName} ({columnNameTypeString});'
         cursor.execute(command)
         connection.commit()
 
     def createPrimary(self, connection:object, cursor:object, tableName:str, primaryColumn:str, columnDict:dict): 
-        command = f'ALTER TABLE {tableName} MODIFY COLUMN {primaryColumn} {columnDict.get(primaryColumn)} PRIMARY KEY ({primaryColumn})'
+        command = f'ALTER TABLE {tableName} MODIFY COLUMN {primaryColumn} {columnDict.get(primaryColumn)} PRIMARY KEY ({primaryColumn});'
         cursor.execute(command)
         connection.commit()
 
     def insertRecord(self, connection:object, cursor:object, tableName:str, columnNameList:list, values:list): 
-        command = f'INSERT INTO {tableName} ({columnNameList}) VALUES ({values})'
+        command = f'INSERT INTO {tableName} ({columnNameList}) VALUES ({values});'
         cursor.execute(command)
         connection.commit()
 
@@ -75,7 +83,7 @@ class TableSetup():
                 dictToString += f'`{i}` = `{changeDict.get()}`, '
             else:
                 dictToString += f'`{i}` = `{changeDict.get()}`'
-        command = f'UPDATE {tableName} SET {dictToString} WHERE {condition};'
+        command = f'UPDATE `{tableName}` SET {dictToString} WHERE {condition};'
         cursor.execute(command)
         connection.commit()
 
