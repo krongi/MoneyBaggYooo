@@ -64,7 +64,30 @@ def createDBTable(connection:object, cursor:object, tableName:str, columnNameTyp
 #     connection.commit()
 
 def insertRecord(connection:object, cursor:object, tableName:str, columnNameList:list, values:list): 
-    command = f'INSERT INTO {tableName} ({columnNameList}) VALUES ({values});'
+    # command = f'INSERT INTO {tableName} ({columnNameList}) VALUES ({values});'
+    # columnNameList.pop(0)
+    values.pop(0)
+    # counterItem = len(columnNameList)
+    # for i in columnNameList:
+    #     if counterItem > 1:
+    #         counterString += i + ', '
+    #         counterItem -= 1
+    #     else:
+    #         counterString += i
+    # columnListString = counterString
+
+    counterString = ''
+    counterItem = len(values)
+    for i in values:
+        if counterItem > 1:
+            counterString += i + ', '
+            counterItem -= 1
+        else:
+            counterString += i
+    valueListString = counterString
+    
+    command = stringInsertInto + ' ' + tableName + ' ' + stringValues + ' (' + valueListString + ');'
+     
     cursor.execute(command)
     connection.commit()
 
@@ -92,13 +115,3 @@ def updateValues(connection:object, cursor:object, tableName:str, changeColumns:
     command = f'UPDATE `{tableName}` SET {dictToString} WHERE {condition};'
     cursor.execute(command)
     connection.commit()
-
-# def columnDict() = self.createColumnDict(self.columnNameList, self.columnType)
-#     firstString = f'{primaryColumn} {columnDict.get(primaryColumn)} NOT NULL UNIQUE AUTO_INCREMENT, '
-#     primaryString = self.columnNameTypeString(columnDict)
-#     primaryString = primaryString.split(', ')
-#     primaryString.pop(0)
-#     lastString = f'PRIMARY KEY ({primaryColumn});'
-#     for i in primaryString: 
-#         finalString += i
-#         return 
