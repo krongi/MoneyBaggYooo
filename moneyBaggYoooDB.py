@@ -30,27 +30,16 @@ clientColumnTypes = ['int', 'varchar(255)', 'float']
 
 trialDict = {}
 
-# productTableColumnsCreate = 'ProductID int NOT NULL UNIQUE AUTO_INCREMENT, ProductName varchar(255), ProductPPU float, ProductSellPrice float'
-# clientTableColumnsCreate = 'ClientID int NOT NULL UNIQUE AUTO_INCREMENT, ClientFirst varchar(255), ClientBalance float'
-
-# clientTableCreate = f'CREATE TABLE {clientTable} ({clientTableColumnsCreate});'
-# productTableCreate = f'CREATE TABLE {productTable} ({productTableColumnsCreate});'
-
 setupQuery = f'CREATE DATABASE `{dbName}`;'
 
 tables = [clientTable, productTable]
-# queries = [clientTableCreate, productTableCreate]
 
-# for i in tables:
-#     johnnyDropTables(i, cursor)
 clientColumnDict = dbf.createColumnDict(clientColumnNames, clientColumnTypes)
 clientColumnNameTypeString = dbf.columnNameTypeString(clientColumnDict)
 dbf.createDBTable(connection, cursor, clientTable, clientColumnNameTypeString)
 productColumnDict = dbf.createColumnDict(productColumnNames, productColumnTypes)
 productColumnNameTypeString = dbf.columnNameTypeString(productColumnDict)
 dbf.createDBTable(connection, cursor, productTable, productColumnNameTypeString)
-# clientTable = scratch.TableSetup(connection, cursor, clientTable, clientColumnNames[0], clientColumnNames, clientColumnTypes)
-# productTable = scratch.TableSetup(connection, cursor, productTable, productColumnNames[0], productColumnNames, productColumnTypes)
 
 productColumnDict = productTable.createColumnDict(productColumnNames, productColumnTypes)
 clientColumnDict = clientTable.createColumnDict(clientColumnNames, clientColumnTypes)
