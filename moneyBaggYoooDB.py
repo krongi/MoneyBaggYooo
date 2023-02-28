@@ -15,7 +15,7 @@ productColumnTypes = ['int', 'varchar(255)', 'float', 'float']
 clientColumnNames = ['ClientID', 'ClientFirst', 'ClientBalance']
 clientColumnTypes = ['int', 'varchar(255)', 'float']
 clientColumnNameTypeString = 'ClientID int NOT NULL UNIQUE PRIMARY KEY AUTO_INCREMENT, ClientFirst varchar(255), ClientLast varchar(255), ClientBalance float'
-productColumnNameTypeString = 'ProductID int NOT NULL UNIQUE PRIMARY KEY AUTO_INCREMENT, ProductName varchar(255), ProductCostPerUnit float, ProductSalePerUnit float, ProductTotalAmount float'
+productColumnNameTypeString = 'ProductID int NOT NULL UNIQUE PRIMARY KEY AUTO_INCREMENT, ProductName varchar(255), ProductCostPerUnit float, ProductPricePerUnit float, ProductTotalAmount float'
 tables = [clientTable, productTable]
 
 #Connect to DB if Exists
@@ -56,6 +56,11 @@ for i in clientTupleList:
 
 for i in productTupleList:
     dbf.addProducts(connection, cursor, i)
+
+# dbf.reduceProductTotal(connection, cursor, 'ProductTotalAmount', '80', 'Software License')
+
+dbf.changeProductCost(connection, cursor, 'Go Green Certificate', '2.00')
+dbf.changeProductPrice(connection, cursor, 'Go Green Certificate', '130.00')
 
 #Create 'clients' column dictionary and the string of both names and types and DB table
 clientColumnDict = dbf.createColumnDict(clientColumnNames, clientColumnTypes)

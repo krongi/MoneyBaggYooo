@@ -75,10 +75,42 @@ def makePayment(connection:object, cursor:object, tableName:str, clientID:int, *
 
 #Product Table Functions
 def addProducts(connection:object, cursor:object, values:list):
-    command = f'INSERT INTO products (ProductName, ProductCostPerUnit, ProductSalePerUnit, ProductTotalAmount) VALUES (%s,%s,%s,%s)'
+    command = f'INSERT INTO products (ProductName, ProductCostPerUnit, ProductPricePerUnit, ProductTotalAmount) VALUES (%s,%s,%s,%s)'
     cursor.execute(command, values)
     connection.commit()
 
+def addProductTotal(connection:object, cursor:object, columnName:str, value:str, productName:str):
+    command = f'SELECT ProductTotalAmount FROM products WHERE ProductName=\'{productName}\''
+    cursor.execute(command)
+    newAmount = cursor.fetchone()
+    newAmount = newAmount[0]
+    newAmount = int(newAmount) + int(value)
+    newAmount = str(newAmount)
+    command = f'UPDATE products SET {columnName}=\'{newAmount}\' WHERE ProductName=\'{productName}\''
+    cursor.execute(command)
+    connection.commit()
+
+def reduceProductTotal(connection:object, cursor:object, columnName:str, value:str, productName:str):
+    command = f'SELECT ProductTotalAmount FROM products WHERE ProductName=\'{productName}\''
+    cursor.execute(command)
+    newAmount = cursor.fetchone()
+    newAmount = newAmount[0]
+    newAmount = int(newAmount) - int(value)
+    newAmount = str(newAmount)
+    command = f'UPDATE products SET {columnName}=\'{newAmount}\' WHERE ProductName=\'{productName}\''
+    cursor.execute(command)
+    connection.commit()
+
+def changeProductCost(connection:object, cursor:object, productName:str, newCost:str):
+    command = f'UPDATE products SET ProductCostPerUnit=\'{newCost}\' WHERE ProductName=\'{productName}\''
+    cursor.execute(command)
+    connection.commit()
+
+def changeProductPrice(connection:object, cursor:object, productName:str, newPrice:str):
+    command = f'UPDATE products SET ProductPricePerUnit=\'{newPrice}\' WHERE ProductName=\'{productName}\''
+    cursor.execute(command)
+    connection.commit()
+    
 def johnnyDropTables(connection:object, cursor:object, tableName):
     command = f'DROP TABLE {tableName};'
     cursor.execute(command)

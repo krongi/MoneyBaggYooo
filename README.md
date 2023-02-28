@@ -25,10 +25,12 @@ To use MoneyBaggYooo, you'll need to have Python 3 installed on your computer. Y
 You'll also need to install the following Python packages:
 
 -   `customtkinter`: This package can be installed using pip
+-   `pillow`: This package can be installed using pip
+-   `mysql_connector`: This package can be installed using pip
 
 pythonCopy code
 
-`pip install customtkinter`
+`pip install customtkinter pillow mysql_connector`
 
 ## Usage
 
