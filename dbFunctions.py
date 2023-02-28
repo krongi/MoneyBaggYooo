@@ -63,31 +63,19 @@ def createDBTable(connection:object, cursor:object, tableName:str, columnNameTyp
 #     cursor.execute(command)
 #     connection.commit()
 
-def insertRecord(connection:object, cursor:object, tableName:str, columnNameList:list, values:list): 
-    # command = f'INSERT INTO {tableName} ({columnNameList}) VALUES ({values});'
-    # columnNameList.pop(0)
-    values.pop(0)
-    # counterItem = len(columnNameList)
-    # for i in columnNameList:
-    #     if counterItem > 1:
-    #         counterString += i + ', '
-    #         counterItem -= 1
-    #     else:
-    #         counterString += i
-    # columnListString = counterString
+def addFront(connection:object, cursor:object, tableName:str, values:list): 
+    command = f'INSERT INTO clients (ClientFirst, ClientBalance) VALUES (%s,%s)'
+    cursor.execute(command, values)
+    connection.commit()
+    # cursor.execute('SELECT * FROM clients')
 
-    counterString = ''
-    counterItem = len(values)
-    for i in values:
-        if counterItem > 1:
-            counterString += i + ', '
-            counterItem -= 1
-        else:
-            counterString += i
-    valueListString = counterString
-    
-    command = stringInsertInto + ' ' + tableName + ' ' + stringValues + ' (' + valueListString + ');'
-     
+def addToBalance(connection:object, cursor:object, tableName:str, clientID:str, balanceAdd:int): 
+    command = f'SELECT ClientBalance FROM {tableName} WHERE ClientID={clientID}'
+    cursor.execute(command)
+    test = cursor.fetchone()
+    test = test[0]
+    final = test + balanceAdd
+    command = f'UPDATE {tableName} SET ClientBalance={final} WHERE ClientID={clientID};'
     cursor.execute(command)
     connection.commit()
 
@@ -96,22 +84,12 @@ def johnnyDropTables(connection:object, cursor:object, tableName):
     cursor.execute(command)
     connection.commit()
 
-def removeRecord(connection:object, cursor:object, tableName:str, condition:str):
-    command = f'DELETE FROM {tableName} WHERE {condition};'
+def makePayment(connection:object, cursor:object, tableName:str, clientID:int, *clientFirst:str, repayAmount:int):
+    command = f'SELECT ClientBalance FROM {tableName} WHERE ClientID={clientID}'
     cursor.execute(command)
-    connection.commit()
-
-def updateValues(connection:object, cursor:object, tableName:str, changeColumns:list, valuesList:list, condition:str):
-    changeDict = {}
-    for i in changeColumns:
-        changeDict.update({changeColumns[len(changeDict)]: valuesList[len(changeDict)]})
-    print(changeDict)
-    dictToString = ''
-    for i in changeDict:
-        if len(changeDict) + 1 != len(changeColumns):
-            dictToString += f'`{i}` = `{changeDict.get()}`, '
-        else:
-            dictToString += f'`{i}` = `{changeDict.get()}`'
-    command = f'UPDATE `{tableName}` SET {dictToString} WHERE {condition};'
+    test = cursor.fetchone()
+    test = test[0]
+    final = test - repayAmount
+    command = f'UPDATE {tableName} SET ClientBalance={final} WHERE ClientID={clientID};'
     cursor.execute(command)
     connection.commit()

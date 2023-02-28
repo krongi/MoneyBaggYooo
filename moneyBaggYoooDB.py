@@ -12,7 +12,7 @@ clientTable = 'clients'
 productTable = 'products'
 productColumnNames = ['ProductID', 'ProductName', 'ProductPPU', 'ProductSellPrice']
 productColumnTypes = ['int', 'varchar(255)', 'float', 'float']
-clientColumnNames = ['ClientID', 'ClientFirst', 'ClientBalace']
+clientColumnNames = ['ClientID', 'ClientFirst', 'ClientBalance']
 clientColumnTypes = ['int', 'varchar(255)', 'float']
 tables = [clientTable, productTable]
 
@@ -35,10 +35,10 @@ productColumnDict = dbf.createColumnDict(productColumnNames, productColumnTypes)
 productColumnNameTypeString = dbf.columnNameTypeString(productColumnDict)
 # dbf.createDBTable(connection, cursor, productTable, productColumnNameTypeString)
 
-dbValues = ['John', '80']
-
-#Insert record testing here
-dbf.insertRecord(connection, cursor, clientTable, clientColumnNames, dbValues)
+dbValues = (8, 80)
+# dbf.makePayment(connection, cursor, clientTable, 8, repayAmount=15)
+# dbf.addFront(connection, cursor, clientTable, dbValues)
+dbf.addToBalance(connection, cursor, clientTable, dbValues[0], dbValues[1])
 
 #Close DB cursor
 cursor.close()
