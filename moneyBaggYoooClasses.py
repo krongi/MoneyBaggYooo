@@ -2,6 +2,9 @@
 import tkinter
 import customtkinter
 from PIL import Image
+import moneyBaggYoooDB as mdb
+import dbFunctions as dbf
+# import moneyBaggYooo
 
 #Functions
 
@@ -101,9 +104,9 @@ def dialogGetName(title, text):
     data = info.get_input()
     return data
 
-cashDict = getDict("cash")
-mainDict = getDict("list")
-productDict = getDict("products")
+# cashDict = getDict("cash")
+# mainDict = getDict("list")
+# productDict = getDict("products")
 
 #Classes
 
@@ -207,10 +210,21 @@ class GrudMainWindow(GrudCtk):
         self.cashTotalsFrame.pack(side="bottom", padx=2, pady=2, expand=True, fill="both")
 
 class GrudInfoPane(GrudFrame):
-    def __init__(self, master, **kwargs):
+    def __init__(self, master, cursor, connection, **kwargs):
         super().__init__(master, **kwargs)
         
-        self.nameList = nameFromDict(mainDict)
+        # self.nameList = nameFromDict(mainDict)
+        command = f'SELECT ClientFirst, ClientBalance FROM clients'
+        cursor.execute(command)
+        clients = cursor.fetchall()
+        namesBalance = []
+        names = []
+        for i in clients:
+            names.append(i[0])
+            namesBalance.append([i[0], i[1]])        
+        self.nameList = names
+        self.connection = connection
+        self.cursor = cursor
 
         self.event_add("<<RepayReleased>>", "<ButtonRelease-1>")
         self.event_add("<<CreditReleased>>", "<ButtonRelease-1>")
@@ -220,7 +234,7 @@ class GrudInfoPane(GrudFrame):
         self.comboBoxFrame = GrudFrame(self)
         self.buttonFrame = GrudFrame(self)
         self.label = GrudLabel(self, "Client Info")
-        self.nameSelector = GrudComboBox(self.comboBoxFrame, self.nameList, command=self.getOwed)
+        self.nameSelector = GrudComboBox(self.comboBoxFrame, self.nameList, command=None)
         self.nameSelector.set('')
         self.selectionInfo = GrudLabel(self.comboBoxFrame, '')
         self.textboxEntry = GrudEntry(self.comboBoxFrame, 'Enter Amount')
@@ -259,15 +273,20 @@ class GrudInfoPane(GrudFrame):
         self.creditButton.configure(state="disabled")
         self.repayButton.configure(state="disabled")
         
-    def getOwed(self, selection):
-        if selection != None:
-            amount = mainDict.get(selection)
-            self.selectionInfo.configure(True, text=selection+ " - $" + amount)
+    def getOwed(self, cursor, connection):
+        clientFirst = self.nameSelector.get()
+        if clientFirst != '':
+            command = f'SELECT ClientBalance FROM clients WHERE ClientFirst={clientFirst}'
+            cursor.execute(command)
+            amount = cursor.fetchone()
+            amount = amount[0]
+            # amount = mainDict.get(selection)
+            self.selectionInfo.configure(True, text=clientFirst + " - $" + amount)
             self.repayButton.configure(state="enable")
             self.creditButton.configure(state="enable")
             self.textboxEntry.configure(state="normal")
         else:
-            self.selectionInfo.configure(True, master=self.comboBoxFrame, text='')
+            pass
         
     def credit(self, *args):
         nameSelected = self.nameSelector.get()
@@ -363,10 +382,23 @@ class GrudInfoPane(GrudFrame):
 
 class GrudProductsFrame(GrudFrame):
     # Shows products frame on right of the main windo
-    def __init__(self, master):
+    def __init__(self, master, cursor, connection):
         super().__init__(master)
 
-        prodNames = nameFromDict(productDict)
+        # prodNames = nameFromDict(productDict)
+        self.cursor = cursor
+        self.connection = connection
+        command = f'SELECT ProductName, ProductTotalAmount FROM products'
+        cursor.execute(command)
+        clients = cursor.fetchall()
+        namesTotals = []
+        names = []
+        for i in clients:
+            names.append(i[0])
+            namesTotals.append([i[0], i[1]]) 
+        self.prodNames = names
+        self.prodNamesTotals = namesTotals
+
         self.label = GrudLabel(self, "Product Info")
 
         self.event_add("<<IncreaseReleased>>", "<ButtonRelease-1>")
@@ -374,7 +406,7 @@ class GrudProductsFrame(GrudFrame):
         self.event_add("<<FunTimesReleased>>", "<ButtonRelease-1>")
         
         self.comboBoxFrame = GrudFrame(self)
-        self.prodComboBox = GrudComboBox(self.comboBoxFrame, prodNames, command=self.getTotals)
+        self.prodComboBox = GrudComboBox(self.comboBoxFrame, names, command=self.getTotals)
         self.prodComboBox.set('')
         self.totalLabel = GrudLabel(self.comboBoxFrame, '')
         self.buttonFrame = GrudFrame(self)
@@ -412,10 +444,13 @@ class GrudProductsFrame(GrudFrame):
         self.decreaseProductButton.configure(True, state="disabled")
         
         
-    def getTotals(self, selection):
+    def getTotals(self, selection, cursor, connection):
         # self.totalLabel.destroy()
-        amount = productDict.get(selection)
-        self.totalLabel.configure(True, text=selection + ": " + str(amount) + " units")
+        command = f'SELECT ProductTotalAmount FROM products WHERE ProductName={selection}'
+        cursor.execute(command)
+        product = self.cursor.fetchone()
+        product = str(product[0]) 
+        # self.totalLabel.configure(True, text=selection + ": " + str(amount) + " units")
         # self.totalLabel = GrudLabel(self, selection + ": " + str(amount) + " units")
         # self.totalLabel.pack(pady=2, side="bottom")
         self.textboxEntry.configure(True, state="normal")
@@ -493,7 +528,7 @@ class GrudProductsFrame(GrudFrame):
         self.clearTextBoxEntry()
            
 class GrudLiquidAssetTracking(GrudFrame):
-    def __init__(self, master, **kwargs):
+    def __init__(self, master, cursor, connection, **kwargs):
         super().__init__(master, **kwargs)
 
         self.event_add("<<CashUpReleased>>", "<ButtonRelease-1>")
@@ -501,10 +536,10 @@ class GrudLiquidAssetTracking(GrudFrame):
 
         self.label = GrudLabel(self, "Finances")
         self.cashFrame = GrudFrame(self)
-        if cashDict.get("cash") != None:
-            self.cashFrameLabel = GrudLabel(self.cashFrame, "Total Cash on Hand: \n$" + str(cashDict.get("cash")))
-        else:
-            self.cashFrameLabel = GrudLabel(self.cashFrame, "You have no Cash on Hand")
+        # if cashDict.get("cash") != None:
+        #     self.cashFrameLabel = GrudLabel(self.cashFrame, "Total Cash on Hand: \n$" + str(cashDict.get("cash")))
+        # else:
+        #     self.cashFrameLabel = GrudLabel(self.cashFrame, "You have no Cash on Hand")
         self.cashFrameButtons = GrudFrame(self.cashFrame)
         self.cashUp = GrudButton(self.cashFrameButtons, "Cash Up", command=self.addCash)
         self.cashDown = GrudButton(self.cashFrameButtons, "Cash Down", command=self.removeCash)
@@ -512,7 +547,7 @@ class GrudLiquidAssetTracking(GrudFrame):
         self.textboxEntry = GrudEntry(self.cashFrame, placeholder_text="Enter Amount")
         self.label.pack(side="top", pady=4, ipady=1)
         self.cashFrame.pack(ipady=3)
-        self.cashFrameLabel.pack(pady=3, ipady=3)
+        # self.cashFrameLabel.pack(pady=3, ipady=3)
         self.cashFrameButtons.pack(side="bottom", pady=6, ipadx=4, ipady=4)
         self.cashUp.pack(padx=2, side="left")
         self.cashDown.pack(padx=2, side="right")
