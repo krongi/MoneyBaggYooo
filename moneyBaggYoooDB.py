@@ -31,8 +31,8 @@ def connection():
     productColumnTypes = ['int', 'varchar(255)', 'float', 'float']
     clientColumnNames = ['ClientID', 'ClientFirst', 'ClientBalance']
     clientColumnTypes = ['int', 'varchar(255)', 'float']
-    clientColumnNameTypeString = 'ClientID int NOT NULL UNIQUE PRIMARY KEY AUTO_INCREMENT, ClientFirst varchar(255), ClientLast varchar(255), ClientBalance float'
-    productColumnNameTypeString = 'ProductID int NOT NULL UNIQUE PRIMARY KEY AUTO_INCREMENT, ProductName varchar(255), ProductCostPerUnit float, ProductPricePerUnit float, ProductTotalAmount float'
+    clientColumnNameTypeString = 'ClientID int NOT NULL UNIQUE PRIMARY KEY AUTO_INCREMENT, ClientFirst varchar(255), ClientLast varchar(255), ClientBalance int'
+    productColumnNameTypeString = 'ProductID int NOT NULL UNIQUE PRIMARY KEY AUTO_INCREMENT, ProductName varchar(255), ProductCostPerUnit int, ProductPricePerUnit int, ProductTotalAmount float'
     tables = [clientTable, productTable]
     try:
         connection = msql.connect(host=dbHost, port=dbPort, user=dbUserRoot, password=dbRootPassword)#, database=dbName)
@@ -62,7 +62,16 @@ def connection():
     except:
         msql.ProgrammingError(errno=1050)
         print("Products table already exists")
+    
+    # for i in clientTupleList:
+    #     dbf.addFront(connection, cursor, i)
+
+    # for i in productTupleList:
+    #     dbf.addProducts(connection, cursor, i)
+
     return [connection, cursor]
+
+
 
 
 clientTupleList = [('John', 'Paz', '100'), ('Chico', 'Marino', '50'), ('Mike', 'Hummer', '200'), ('Walt', 'MindyMan', '50'), ('Stone', 'Lingo', '70'), ('Striker', 'VonFireworkin', '60'), ('Lee', 'Redard', '40'), ('Alexa', 'TashiFriend', '20')]
