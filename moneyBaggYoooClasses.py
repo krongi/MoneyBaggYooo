@@ -214,17 +214,12 @@ class GrudInfoPane(GrudFrame):
         super().__init__(master, **kwargs)
         
         # self.nameList = nameFromDict(mainDict)
-        command = f'SELECT ClientFirst, ClientBalance FROM clients'
-        cursor.execute(command)
-        clients = cursor.fetchall()
-        namesBalance = []
-        names = []
-        for i in clients:
-            names.append(i[0])
-            namesBalance.append([i[0], i[1]])        
-        self.nameList = names
         self.connection = connection
         self.cursor = cursor
+
+        [namesList, nameBalances] = self.seedList()        
+        
+        
 
         self.event_add("<<RepayReleased>>", "<ButtonRelease-1>")
         self.event_add("<<CreditReleased>>", "<ButtonRelease-1>")
@@ -234,7 +229,7 @@ class GrudInfoPane(GrudFrame):
         self.comboBoxFrame = GrudFrame(self)
         self.buttonFrame = GrudFrame(self)
         self.label = GrudLabel(self, "Client Info")
-        self.nameSelector = GrudComboBox(self.comboBoxFrame, self.nameList, command=None)
+        self.nameSelector = GrudComboBox(self.comboBoxFrame, namesList, command=self.getOwed)
         self.nameSelector.set('')
         self.selectionInfo = GrudLabel(self.comboBoxFrame, '')
         self.textboxEntry = GrudEntry(self.comboBoxFrame, 'Enter Amount')
@@ -258,7 +253,18 @@ class GrudInfoPane(GrudFrame):
         self.creditButton.configure(state="disabled")
         self.repayButton.configure(state="disabled")
 
-    def clearSelectionInfo(self):
+    def seedList(self, *args):
+        command = f'SELECT ClientFirst, ClientBalance FROM clients'
+        self.cursor.execute(command)
+        clients = self.cursor.fetchall()
+        namesBalance = []
+        names = []
+        for i in clients:
+            names.append(i[0])
+            namesBalance.append([i[0], i[1]])
+        return [names, namesBalance]
+
+    def clearSelectionInfo(self, *args):
         entry = self.textboxEntry.get()
         digitCount = 0
         for i in entry:
@@ -273,15 +279,16 @@ class GrudInfoPane(GrudFrame):
         self.creditButton.configure(state="disabled")
         self.repayButton.configure(state="disabled")
         
-    def getOwed(self, cursor, connection):
+    def getOwed(self, *args):
         clientFirst = self.nameSelector.get()
         if clientFirst != '':
-            command = f'SELECT ClientBalance FROM clients WHERE ClientFirst={clientFirst}'
-            cursor.execute(command)
-            amount = cursor.fetchone()
+            command = f'SELECT ClientBalance FROM clients WHERE ClientFirst=\'{clientFirst}\''
+            self.cursor.execute(command)
+            amount = self.cursor.fetchone()
             amount = amount[0]
+            self.connection.commit()
             # amount = mainDict.get(selection)
-            self.selectionInfo.configure(True, text=clientFirst + " - $" + amount)
+            self.selectionInfo.configure(True, text=clientFirst + " - $" + str(amount))
             self.repayButton.configure(state="enable")
             self.creditButton.configure(state="enable")
             self.textboxEntry.configure(state="normal")
@@ -291,6 +298,10 @@ class GrudInfoPane(GrudFrame):
     def credit(self, *args):
         nameSelected = self.nameSelector.get()
         creditApplied = self.textboxEntry.get()
+        command = f'SELECT ClientID FROM clients WHERE ClientFirst=\'{nameSelected}\''
+        self.cursor.execute(command)
+        clientID = self.cursor.fetchone()
+        clientID = clientID[0]
         try: 
             int(creditApplied)
             isInt=True
@@ -299,16 +310,8 @@ class GrudInfoPane(GrudFrame):
             isInt=False
         if isInt == True:
             if creditApplied != '':
-                digitCount = 0
-                for i in creditApplied:
-                    digitCount += 1
                 creditApplied = int(creditApplied)
-                currentAmount = mainDict.get(nameSelected)
-                currentAmount = int(currentAmount)
-                newAmount = currentAmount + creditApplied
-                newAmount = str(newAmount)
-                mainDict.update({nameSelected: newAmount})
-                saveDict(mainDict, "list")
+                dbf.addToBalance(self.connection, self.cursor, 'clients', clientID, int(creditApplied))
                 self.getOwed(nameSelected)
                 self.clearSelectionInfo()
             else: 
@@ -319,7 +322,8 @@ class GrudInfoPane(GrudFrame):
             self.clearSelectionInfo()
 
     def add(self, *args):
-        clientName = dialogGetName("Add Name", "Enter client name.")
+        clientFirst = dialogGetName("Add First Name", "Enter client first name.")
+        clientLast = dialogGetName("Add Last Name", "Enter client last name.")
         clientAmount = dialogUserInput("Product Value", "Total money loaned")
         try:
             int(clientAmount)
@@ -329,21 +333,32 @@ class GrudInfoPane(GrudFrame):
             isInt=False
         if isInt == True:
             if clientAmount != None:
-                mainDict.update({clientName: str(clientAmount)})
-                saveDict(mainDict, "list")
-                self.nameList = nameFromDict(mainDict)
-                self.nameSelector.configure(require_redraw=True, values=self.nameList)
-                self.nameSelector.set('')    
+                dbf.addFront(self.connection, self.cursor, [clientFirst, clientLast, int(clientAmount)])
+                self.nameSelector.set('')
+                self.clearSelectionInfo()
+                [names, namesBalance] = self.seedList()
+                self.nameSelector.configure(require_redraw=True, values=names)
+                self.getOwed()
             else:
                 print("Nothing Done for Add")
+                self.clearSelectionInfo()
+                self.seedList()
         else:
             print("Nothing Added")
             self.clearSelectionInfo()
+            self.seedlist()
 
     def repay(self, *args):
         nameSelected = self.nameSelector.get()
-        currentAmount = mainDict.get(nameSelected)
+        command = f'SELECT ClientBalance FROM clients WHERE ClientFirst=\'{nameSelected}\''
+        self.cursor.execute(command)
+        currentAmount = self.cursor.fetchone()
+        currentAmount = currentAmount[0]
         repayBalance = self.textboxEntry.get()
+        command = f'SELECT ClientID FROM clients WHERE ClientFirst=\'{nameSelected}\''
+        self.cursor.execute(command)
+        clientID = self.cursor.fetchone()
+        clientID = clientID[0]
         try: 
             int(repayBalance)
             isInt=True
@@ -352,26 +367,16 @@ class GrudInfoPane(GrudFrame):
             isInt=False
         if isInt == True:
             if repayBalance != '':
-                digitCount = 0
-                for i in repayBalance:
-                    digitCount += 1
                 if int(repayBalance) == int(currentAmount):
-                    updateCash = int(cashDict.get("cash")) + int(repayBalance)
-                    cashDict.update({"cash": str(updateCash)})
-                    mainDict.pop(nameSelected)                
-                    saveDict(mainDict, "list")
-                    saveDict(cashDict, "cash")
-                    self.nameList = nameFromDict(mainDict)
-                    self.nameSelector.configure(require_redraw=True, values=self.nameList)
+                    dbf.makePayment(self.connection, self.cursor, 'clients', clientID, repayAmount=int(repayBalance))
+                    self.getOwed(nameSelected)
+                    self.clearSelectionInfo()
                     self.nameSelector.set('')
                 elif int(currentAmount) > int(repayBalance):
-                    updateCash = int(cashDict.get("cash")) + int(repayBalance)
-                    cashDict.update({"cash": str(updateCash)})
-                    newAmount = int(currentAmount) - int(repayBalance)
-                    mainDict.update({nameSelected: str(newAmount)})
-                    saveDict(mainDict, "list")
-                    saveDict(cashDict, "cash")
+                    dbf.makePayment(self.connection, self.cursor, 'clients', clientID, repayAmount=int(repayBalance))
                     self.getOwed(nameSelected)
+                    self.clearSelectionInfo()
+                    self.nameSelector.set('')
                 else:
                     print("Nope, try again")
             else:
