@@ -2,6 +2,8 @@
 import tkinter
 import customtkinter
 from PIL import Image
+import moneyBaggYoooDB as mdb
+import dbFunctions as dbf
 
 #Functions
 
@@ -100,10 +102,6 @@ def dialogGetName(title, text):
     info = GrudInputDialog(title, text)
     data = info.get_input()
     return data
-
-cashDict = getDict("cash")
-mainDict = getDict("list")
-productDict = getDict("products")
 
 #Classes
 
@@ -207,10 +205,15 @@ class GrudMainWindow(GrudCtk):
         self.cashTotalsFrame.pack(side="bottom", padx=2, pady=2, expand=True, fill="both")
 
 class GrudInfoPane(GrudFrame):
-    def __init__(self, master, **kwargs):
+    def __init__(self, master, cursor, connection, **kwargs):
         super().__init__(master, **kwargs)
         
-        self.nameList = nameFromDict(mainDict)
+        self.connection = connection
+        self.cursor = cursor
+
+        [namesList, nameBalances] = self.seedList()        
+        
+        
 
         self.event_add("<<RepayReleased>>", "<ButtonRelease-1>")
         self.event_add("<<CreditReleased>>", "<ButtonRelease-1>")
@@ -220,14 +223,14 @@ class GrudInfoPane(GrudFrame):
         self.comboBoxFrame = GrudFrame(self)
         self.buttonFrame = GrudFrame(self)
         self.label = GrudLabel(self, "Client Info")
-        self.nameSelector = GrudComboBox(self.comboBoxFrame, self.nameList, command=self.getOwed)
+        self.nameSelector = GrudComboBox(self.comboBoxFrame, namesList, command=self.getOwed)
         self.nameSelector.set('')
         self.selectionInfo = GrudLabel(self.comboBoxFrame, '')
         self.textboxEntry = GrudEntry(self.comboBoxFrame, 'Enter Amount')
         self.buttonFrame = GrudFrame(self)
         self.creditButton = GrudButton(self.buttonFrame, "Credit", command=self.credit)
         self.repayButton = GrudButton(self.buttonFrame, "Repay", command=self.repay)
-        self.addButton = GrudButton(self.buttonFrame, "Add", command=self.add)
+        self.fishTankButton = GrudButton(self.buttonFrame, "FishTank", command=self.add)
 
         # Packing instances into widget
         self.label.pack(side="top", pady=6)
@@ -237,14 +240,25 @@ class GrudInfoPane(GrudFrame):
         self.selectionInfo.pack(side="bottom", pady=2)
         self.textboxEntry.pack(side="bottom")
 
-        self.addButton.pack(side="left", padx=2)
+        self.fishTankButton.pack(side="left", padx=2)
         self.creditButton.pack(side="left", padx=2)
         self.repayButton.pack(side="left", padx=2)
         self.textboxEntry.configure(state="disabled")
         self.creditButton.configure(state="disabled")
         self.repayButton.configure(state="disabled")
 
-    def clearSelectionInfo(self):
+    def seedList(self, *args):
+        command = f'SELECT ClientFirst, ClientBalance FROM clients'
+        self.cursor.execute(command)
+        clients = self.cursor.fetchall()
+        namesBalance = []
+        names = []
+        for i in clients:
+            names.append(i[0])
+            namesBalance.append([i[0], i[1]])
+        return [names, namesBalance]
+
+    def clearSelectionInfo(self, *args):
         entry = self.textboxEntry.get()
         digitCount = 0
         for i in entry:
@@ -259,19 +273,28 @@ class GrudInfoPane(GrudFrame):
         self.creditButton.configure(state="disabled")
         self.repayButton.configure(state="disabled")
         
-    def getOwed(self, selection):
-        if selection != None:
-            amount = mainDict.get(selection)
-            self.selectionInfo.configure(True, text=selection+ " - $" + amount)
+    def getOwed(self, *args):
+        clientFirst = self.nameSelector.get()
+        if clientFirst != '':
+            command = f'SELECT ClientBalance FROM clients WHERE ClientFirst=\'{clientFirst}\''
+            self.cursor.execute(command)
+            amount = self.cursor.fetchone()
+            amount = amount[0]
+            self.connection.commit()
+            self.selectionInfo.configure(True, text=clientFirst + " - $" + str(amount))
             self.repayButton.configure(state="enable")
             self.creditButton.configure(state="enable")
             self.textboxEntry.configure(state="normal")
         else:
-            self.selectionInfo.configure(True, master=self.comboBoxFrame, text='')
+            pass
         
     def credit(self, *args):
         nameSelected = self.nameSelector.get()
         creditApplied = self.textboxEntry.get()
+        command = f'SELECT ClientID FROM clients WHERE ClientFirst=\'{nameSelected}\''
+        self.cursor.execute(command)
+        clientID = self.cursor.fetchone()
+        clientID = clientID[0]
         try: 
             int(creditApplied)
             isInt=True
@@ -280,16 +303,8 @@ class GrudInfoPane(GrudFrame):
             isInt=False
         if isInt == True:
             if creditApplied != '':
-                digitCount = 0
-                for i in creditApplied:
-                    digitCount += 1
                 creditApplied = int(creditApplied)
-                currentAmount = mainDict.get(nameSelected)
-                currentAmount = int(currentAmount)
-                newAmount = currentAmount + creditApplied
-                newAmount = str(newAmount)
-                mainDict.update({nameSelected: newAmount})
-                saveDict(mainDict, "list")
+                dbf.addToBalance(self.connection, self.cursor, 'clients', clientID, int(creditApplied))
                 self.getOwed(nameSelected)
                 self.clearSelectionInfo()
             else: 
@@ -300,7 +315,8 @@ class GrudInfoPane(GrudFrame):
             self.clearSelectionInfo()
 
     def add(self, *args):
-        clientName = dialogGetName("Add Name", "Enter client name.")
+        clientFirst = dialogGetName("Add First Name", "Enter client first name.")
+        clientLast = dialogGetName("Add Last Name", "Enter client last name.")
         clientAmount = dialogUserInput("Product Value", "Total money loaned")
         try:
             int(clientAmount)
@@ -310,21 +326,32 @@ class GrudInfoPane(GrudFrame):
             isInt=False
         if isInt == True:
             if clientAmount != None:
-                mainDict.update({clientName: str(clientAmount)})
-                saveDict(mainDict, "list")
-                self.nameList = nameFromDict(mainDict)
-                self.nameSelector.configure(require_redraw=True, values=self.nameList)
-                self.nameSelector.set('')    
+                dbf.addFront(self.connection, self.cursor, [clientFirst, clientLast, int(clientAmount)])
+                self.nameSelector.set('')
+                self.clearSelectionInfo()
+                [names, namesBalance] = self.seedList()
+                self.nameSelector.configure(require_redraw=True, values=names)
+                self.getOwed()
             else:
                 print("Nothing Done for Add")
+                self.clearSelectionInfo()
+                self.seedList()
         else:
             print("Nothing Added")
             self.clearSelectionInfo()
 
+
     def repay(self, *args):
         nameSelected = self.nameSelector.get()
-        currentAmount = mainDict.get(nameSelected)
+        command = f'SELECT ClientBalance FROM clients WHERE ClientFirst=\'{nameSelected}\''
+        self.cursor.execute(command)
+        currentAmount = self.cursor.fetchone()
+        currentAmount = currentAmount[0]
         repayBalance = self.textboxEntry.get()
+        command = f'SELECT ClientID FROM clients WHERE ClientFirst=\'{nameSelected}\''
+        self.cursor.execute(command)
+        clientID = self.cursor.fetchone()
+        clientID = clientID[0]
         try: 
             int(repayBalance)
             isInt=True
@@ -333,26 +360,16 @@ class GrudInfoPane(GrudFrame):
             isInt=False
         if isInt == True:
             if repayBalance != '':
-                digitCount = 0
-                for i in repayBalance:
-                    digitCount += 1
                 if int(repayBalance) == int(currentAmount):
-                    updateCash = int(cashDict.get("cash")) + int(repayBalance)
-                    cashDict.update({"cash": str(updateCash)})
-                    mainDict.pop(nameSelected)                
-                    saveDict(mainDict, "list")
-                    saveDict(cashDict, "cash")
-                    self.nameList = nameFromDict(mainDict)
-                    self.nameSelector.configure(require_redraw=True, values=self.nameList)
+                    dbf.makePayment(self.connection, self.cursor, 'clients', clientID, repayAmount=int(repayBalance))
+                    self.getOwed(nameSelected)
+                    self.clearSelectionInfo()
                     self.nameSelector.set('')
                 elif int(currentAmount) > int(repayBalance):
-                    updateCash = int(cashDict.get("cash")) + int(repayBalance)
-                    cashDict.update({"cash": str(updateCash)})
-                    newAmount = int(currentAmount) - int(repayBalance)
-                    mainDict.update({nameSelected: str(newAmount)})
-                    saveDict(mainDict, "list")
-                    saveDict(cashDict, "cash")
+                    dbf.makePayment(self.connection, self.cursor, 'clients', clientID, repayAmount=int(repayBalance))
                     self.getOwed(nameSelected)
+                    self.clearSelectionInfo()
+                    self.nameSelector.set('')
                 else:
                     print("Nope, try again")
             else:
@@ -363,10 +380,22 @@ class GrudInfoPane(GrudFrame):
 
 class GrudProductsFrame(GrudFrame):
     # Shows products frame on right of the main windo
-    def __init__(self, master):
+    def __init__(self, master, cursor, connection):
         super().__init__(master)
 
-        prodNames = nameFromDict(productDict)
+        self.cursor = cursor
+        self.connection = connection
+        command = f'SELECT ProductName, ProductTotalAmount FROM products'
+        cursor.execute(command)
+        clients = cursor.fetchall()
+        namesTotals = []
+        names = []
+        for i in clients:
+            names.append(i[0])
+            namesTotals.append([i[0], i[1]]) 
+        self.prodNames = names
+        self.prodNamesTotals = namesTotals
+
         self.label = GrudLabel(self, "Product Info")
 
         self.event_add("<<IncreaseReleased>>", "<ButtonRelease-1>")
@@ -374,7 +403,7 @@ class GrudProductsFrame(GrudFrame):
         self.event_add("<<FunTimesReleased>>", "<ButtonRelease-1>")
         
         self.comboBoxFrame = GrudFrame(self)
-        self.prodComboBox = GrudComboBox(self.comboBoxFrame, prodNames, command=self.getTotals)
+        self.prodComboBox = GrudComboBox(self.comboBoxFrame, names, command=self.getTotals)
         self.prodComboBox.set('')
         self.totalLabel = GrudLabel(self.comboBoxFrame, '')
         self.buttonFrame = GrudFrame(self)
@@ -412,17 +441,16 @@ class GrudProductsFrame(GrudFrame):
         self.decreaseProductButton.configure(True, state="disabled")
         
         
-    def getTotals(self, selection):
-        # self.totalLabel.destroy()
-        amount = productDict.get(selection)
+    def getTotals(self, selection, *args):
+        command = f'SELECT ProductTotalAmount FROM products WHERE ProductName=\'{selection}\''
+        self.cursor.execute(command)
+        amount = self.cursor.fetchone()
+        amount = str(amount[0]) 
         self.totalLabel.configure(True, text=selection + ": " + str(amount) + " units")
-        # self.totalLabel = GrudLabel(self, selection + ": " + str(amount) + " units")
-        # self.totalLabel.pack(pady=2, side="bottom")
         self.textboxEntry.configure(True, state="normal")
         self.increaseProductButton.configure(True, state="enabled")
         self.decreaseProductButton.configure(True, state="enabled")
 
-        
     def increaseProduct(self, *args):
         productSelected = self.prodComboBox.get()
         increase = self.textboxEntry.get()
@@ -433,19 +461,12 @@ class GrudProductsFrame(GrudFrame):
             print("That's not a number")
             isInt=False
         if isInt == True:
-            if increase != '':
-                # increase = dialogUserInput("Product Increase", "How much to increase?")
-                currentAmount =  int(productDict.get(productSelected))
-                newTotal = currentAmount + int(increase)
-                # newTotal = str(newTotal)
-                productDict.update({productSelected: str(newTotal)})
-                saveDict(productDict, "products")
-                self.getTotals(productSelected)
-                self.clearTextBoxEntry()
+            dbf.increaseProductTotal(self.connection, self.cursor, increase, productSelected)
+            self.getTotals(productSelected, self.cursor, self.connection)
+            self.clearTextBoxEntry()
         else:    
             print("Nothing Increased")
             self.clearTextBoxEntry()        
-        
 
     def decreaseProduct(self, *args):
         productSelected = self.prodComboBox.get()
@@ -457,54 +478,25 @@ class GrudProductsFrame(GrudFrame):
             print("That's not a number")
             isInt=False
         if isInt == True:
-            if decrease != '':
-                currentAmount = productDict.get(productSelected)
-                if currentAmount == decrease:
-                    newTotal = int(currentAmount) - int(decrease)
-                    productDict.update({productSelected: str(newTotal)})
-                    saveDict(productDict, "products") 
-                    # self.prodComboBox.configure(True, )
-                    # self.prodComboBox.set('')
-                    # self.totalLabel.configure(True, text='')
-                    self.clearTextBoxEntry()
-                elif int(currentAmount) > int(decrease):
-                    newTotal = int(currentAmount) - int(decrease)
-                    productDict.update({productSelected: str(newTotal)})
-                    saveDict(productDict, "products")
-                    self.getTotals(productSelected) 
-                    self.clearTextBoxEntry()
-                    
-                # decrease = dialogUserInput("Product Decrease", "How much to decrease?")
-                # newTotal = str(newTotal)
-                # productDict.update({productSelected: str(newTotal)})
-                # saveDict(productDict, "products") 
-                else:    
-                    # decrease = dialogUserInput("Product Decrease", "How much to decrease?")
-                    # decrease = self.textboxEntry.get()
-                    # currentAmount =  int(productDict.get(productSelected))
-                    # newTotal = currentAmount - int(decrease)
-                    # # newTotal = str(newTotal)
-                    # productDict.update({productSelected: str(newTotal)})
-                    # saveDict(productDict, "products")        
-                    # self.getTotals(productSelected)
-                    print("Nothing Decreased")
+           dbf.reduceProductTotal(self.connection, self.cursor, decrease, productSelected)
+           self.getTotals(productSelected, self.cursor, self.connection)
+           self.clearTextBoxEntry()
         else:
             print("Nothing Done")
         self.clearTextBoxEntry()
            
 class GrudLiquidAssetTracking(GrudFrame):
-    def __init__(self, master, **kwargs):
+    def __init__(self, master, cursor, connection, **kwargs):
         super().__init__(master, **kwargs)
 
+        self.cursor = cursor
+        self.connection = connection
         self.event_add("<<CashUpReleased>>", "<ButtonRelease-1>")
         self.event_add("<<CashDownReleased>>", "<ButtonRelease-1>")
-
+        assets = dbf.getAssets(self.connection, self.cursor)
         self.label = GrudLabel(self, "Finances")
         self.cashFrame = GrudFrame(self)
-        if cashDict.get("cash") != None:
-            self.cashFrameLabel = GrudLabel(self.cashFrame, "Total Cash on Hand: \n$" + str(cashDict.get("cash")))
-        else:
-            self.cashFrameLabel = GrudLabel(self.cashFrame, "You have no Cash on Hand")
+        self.cashFrameLabel = GrudLabel(self, text="Total Cash on Hand: \n$" + str(assets))
         self.cashFrameButtons = GrudFrame(self.cashFrame)
         self.cashUp = GrudButton(self.cashFrameButtons, "Cash Up", command=self.addCash)
         self.cashDown = GrudButton(self.cashFrameButtons, "Cash Down", command=self.removeCash)
@@ -537,22 +529,16 @@ class GrudLiquidAssetTracking(GrudFrame):
             print("That's not a number")
             isInt=False
         if isInt == True:
-            addCash = int(amount) + int(cashDict.get("cash"))
-            cashDict.update({"cash": str(addCash)})
-            saveDict(cashDict, "cash")
-            self.changeCashAmount()
+            dbf.addCash(self.connection, self.cursor, amount)
+            assets = dbf.getAssets(self.connection, self.cursor)
+            self.changeCashAmount(assets)
             self.clearTextEntryBox()
         else:
             print("Nothing Added, Not a Valid Entry")
             self.clearTextEntryBox()
 
-        # cashToAdd = dialogUserInput("Add Cash", "How much are you adding?")
-        # newCash = int(cashToAdd) + int(cash)
-        # saveFile("cash", newCash)
-        # self.changeCashAmount(event)
-
     def removeCash(self, *args):
-        # pass
+
         amount = self.textboxEntry.get()
         try:
             int(amount)
@@ -561,30 +547,18 @@ class GrudLiquidAssetTracking(GrudFrame):
             print("That's not a number")
             isInt=False
         if isInt == True:
-            if int(cashDict.get("cash")) >= int(amount):
-                removeCash =  int(cashDict.get("cash")) - int(amount)
-                cashDict.update({"cash": str(removeCash)})
-                saveDict(cashDict, "cash")
-                self.changeCashAmount()
-                self.clearTextEntryBox()
-            else:
-                print("Nothing Removed, Amount too Large")
-                self.clearTextEntryBox()
-        else:
-            print("Nothing Removed, Not a Valid Entry")
+            dbf.reduceCash(self.connection, self.cursor, amount)
+            assets = dbf.getAssets(self.connection, self.cursor)
+            self.changeCashAmount(assets)
             self.clearTextEntryBox()
-        # cashToRemove = dialogUserInput("Remove Cash", "How much are you removing")
-        # newCash = int(cash) - int(cashToRemove) 
-        # saveFile("cash", newCash)
-        # self.changeCashAmount(event)
+        else:
+            print("Nothing Removed, Amount too Large")
+            self.clearTextEntryBox()
+
+    def changeCashAmount(self, assets, *args):
+        self.cashFrameLabel.configure(require_redraw=True, text="Total Cash on Hand: \n$" + str(assets))
 
 
-    def changeCashAmount(self, *args):
-        self.cashFrameLabel.configure(require_redraw=True, text="Total Cash on Hand: \n$" + str(cashDict.get("cash")))
     
     def zeroOutCash(self, *args):
-        saveDict(cashDict, "cashBackup")
-        cashDict.update({"cash": "0"})
-        saveDict(cashDict, "cash")
-        self.cashFrameLabel.configure(True, text="Total Cash on Hand: \n$" + str(cashDict.get("cash")))
-        self.clearTextEntryBox()
+        print('functionality tbd')
