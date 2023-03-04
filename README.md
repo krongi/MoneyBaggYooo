@@ -34,7 +34,7 @@ pythonCopy code
 
 ## Usage
 
-To run MoneyBaggYooo, navigate to the directory containing the `moneyBaggYooo.py` file and run the following command:
+To run MoneyBaggYooo, ensure you have the database service running on localhost at 3306 navigate to the directory containing the `moneyBaggYooo.py` file and run the following command:
 
 pythonCopy code
 
