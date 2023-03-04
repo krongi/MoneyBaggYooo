@@ -1,16 +1,3 @@
-# stringNotNull = f'NOT NULL'
-# stringUnique = f'UNIQUE'
-# stringAutoIncrement = f'AUTO_INCREMENT'
-# stringCreateDBTable = f'CREATE TABLE'
-# stringCreateDB = f'CREATE DATABASE'
-# stringAlterTable = f'ALTER TABLE'
-# stringModColumn = f'MODIFY COLUMN'
-# stringInsertInto = f'INSERT INTO'
-# stringValues = f'VALUES'
-# stringDropTable = f'DROP TABLE'
-# stringDeleteFrom = f'DELETE FROM'
-# stringWhere = f'WHERE'
-# stringPrimaryKey = f'PRIMARY KEY'
 
 #TESTED WORKING
 def columnNameTypeString(columnDict:dict):   
@@ -45,7 +32,6 @@ def createTable(connection:object, cursor:object, columnNameType:str, tableName:
     cursor.execute(command)
     connection.commit()
 
-
 #Client Table functions
 def addFront(connection:object, cursor:object, values:list): 
     command = f'INSERT INTO clients (ClientFirst, ClientLast, ClientBalance) VALUES (%s,%s,%s)'
@@ -55,20 +41,20 @@ def addFront(connection:object, cursor:object, values:list):
 def addToBalance(connection:object, cursor:object, tableName:str, clientID:str, balanceAdd:int): 
     command = f'SELECT ClientBalance FROM {tableName} WHERE ClientID={clientID}'
     cursor.execute(command)
-    test = cursor.fetchone()
-    test = test[0]
-    final = test + balanceAdd
-    command = f'UPDATE {tableName} SET ClientBalance={final} WHERE ClientID={clientID};'
+    currentAmount = cursor.fetchone()
+    currentAmount = currentAmount[0]
+    newAmount = currentAmount + balanceAdd
+    command = f'UPDATE {tableName} SET ClientBalance={newAmount} WHERE ClientID={clientID};'
     cursor.execute(command)
     connection.commit()
 
-def makePayment(connection:object, cursor:object, tableName:str, clientID:int, *clientFirst:str, repayAmount:int):
+def makePayment(connection:object, cursor:object, tableName:str, clientID:int, repayAmount:int):
     command = f'SELECT ClientBalance FROM {tableName} WHERE ClientID={clientID}'
     cursor.execute(command)
-    test = cursor.fetchone()
-    test = test[0]
-    final = test - repayAmount
-    command = f'UPDATE {tableName} SET ClientBalance={final} WHERE ClientID={clientID};'
+    currentAmount = cursor.fetchone()
+    currentAmount = currentAmount[0]
+    newAmount = currentAmount - repayAmount
+    command = f'UPDATE {tableName} SET ClientBalance={newAmount} WHERE ClientID={clientID};'
     cursor.execute(command)
     connection.commit()
 
@@ -79,27 +65,30 @@ def addProducts(connection:object, cursor:object, values:list):
     cursor.execute(command, values)
     connection.commit()
 
-def addProductTotal(connection:object, cursor:object, columnName:str, value:str, productName:str):
+def increaseProductTotal(connection:object, cursor:object, value:str, productName:str):
     command = f'SELECT ProductTotalAmount FROM products WHERE ProductName=\'{productName}\''
     cursor.execute(command)
-    newAmount = cursor.fetchone()
-    newAmount = newAmount[0]
-    newAmount = int(newAmount) + int(value)
+    currentAmount = cursor.fetchone()
+    currentAmount = currentAmount[0]
+    newAmount = int(currentAmount) + int(value)
     newAmount = str(newAmount)
-    command = f'UPDATE products SET {columnName}=\'{newAmount}\' WHERE ProductName=\'{productName}\''
+    command = f'UPDATE products SET ProductTotalAmount=\'{newAmount}\' WHERE ProductName=\'{productName}\''
     cursor.execute(command)
     connection.commit()
 
-def reduceProductTotal(connection:object, cursor:object, columnName:str, value:str, productName:str):
+def reduceProductTotal(connection:object, cursor:object, value:str, productName:str):
     command = f'SELECT ProductTotalAmount FROM products WHERE ProductName=\'{productName}\''
     cursor.execute(command)
-    newAmount = cursor.fetchone()
-    newAmount = newAmount[0]
-    newAmount = int(newAmount) - int(value)
-    newAmount = str(newAmount)
-    command = f'UPDATE products SET {columnName}=\'{newAmount}\' WHERE ProductName=\'{productName}\''
-    cursor.execute(command)
-    connection.commit()
+    currentAmount = cursor.fetchone()
+    currentAmount = currentAmount[0]
+    if int(currentAmount) >= int(value):
+        newAmount = int(currentAmount) - int(value)
+        newAmount = str(newAmount)
+        command = f'UPDATE products SET ProductTotalAmount=\'{newAmount}\' WHERE ProductName=\'{productName}\''
+        cursor.execute(command)
+        connection.commit()
+    else:
+        print('Entry too high, can not be greater than\ncurrent total!')
 
 def changeProductCost(connection:object, cursor:object, productName:str, newCost:str):
     command = f'UPDATE products SET ProductCostPerUnit=\'{newCost}\' WHERE ProductName=\'{productName}\''
@@ -110,6 +99,34 @@ def changeProductPrice(connection:object, cursor:object, productName:str, newPri
     command = f'UPDATE products SET ProductPricePerUnit=\'{newPrice}\' WHERE ProductName=\'{productName}\''
     cursor.execute(command)
     connection.commit()
+
+# Asset table functions
+def addCash(connection:object, cursor:object, increase, assetName:str='Cash'):
+    command = f'SELECT AssetValue FROM assets WHERE AssetName=\'{assetName}\''
+    cursor.execute(command)
+    currentAmount = cursor.fetchone()
+    currentAmount = currentAmount[0]
+    newAmount = int(currentAmount) + int(increase)
+    command = f'UPDATE assets SET AssetValue=\'{newAmount}\''
+    cursor.execute(command)
+    connection.commit()
+
+def reduceCash(connection:object, cursor:object, decrease, assetName:str='Cash'):
+    command = f'SELECT AssetValue FROM assets WHERE AssetName=\'{assetName}\''
+    cursor.execute(command)
+    currentAmount = cursor.fetchone()
+    currentAmount = currentAmount[0]
+    newAmount = int(currentAmount) - int(decrease)
+    command = f'UPDATE assets SET AssetValue=\'{newAmount}\''
+    cursor.execute(command)
+    connection.commit()
+
+def getAssets(connection:object, cursor:object, assetName:str='Cash', columnName:str='AssetValue', table:str='assets'):
+    command = f'SELECT {columnName} FROM {table} WHERE AssetName=\'{assetName}\''
+    cursor.execute(command)
+    assets = cursor.fetchone()
+    assets = assets[0]
+    return assets
     
 def johnnyDropTables(connection:object, cursor:object, tableName):
     command = f'DROP TABLE {tableName};'
